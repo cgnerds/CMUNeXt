@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from dataloader.dataset import MedicalDataSets
-from albumentations.augmentations import transforms
+import albumentations as albu
 from albumentations.core.composition import Compose
 from albumentations import RandomRotate90, Resize
 
@@ -49,15 +49,15 @@ args = parser.parse_args()
 def getDataloader():
     img_size = 256
     train_transform = Compose([
-        RandomRotate90(),
-        transforms.Flip(),
-        Resize(img_size, img_size),
-        transforms.Normalize(),
+        albu.RandomRotate90(),
+        albu.Flip(),
+        albu.Resize(img_size, img_size),
+        albu.Normalize(),
     ])
 
     val_transform = Compose([
-        Resize(img_size, img_size),
-        transforms.Normalize(),
+        albu.Resize(img_size, img_size),
+        albu.Normalize(),
     ])
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
                                train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir)
