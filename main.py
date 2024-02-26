@@ -41,7 +41,7 @@ parser.add_argument('--train_file_dir', type=str, default="busi_train.txt", help
 parser.add_argument('--val_file_dir', type=str, default="busi_val.txt", help='dir')
 parser.add_argument('--base_lr', type=float, default=0.01,
                     help='segmentation network learning rate')
-parser.add_argument('--batch_size', type=int, default=8,
+parser.add_argument('--batch_size', type=int, default=96,
                     help='batch_size per gpu')
 args = parser.parse_args()
 
@@ -65,10 +65,10 @@ def getDataloader():
                              train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir)
     print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
 
-    trainloader = DataLoader(db_train, batch_size=8, shuffle=True,
-                             num_workers=8, pin_memory=False)
-    valloader = DataLoader(db_val, batch_size=1, shuffle=False,
-                           num_workers=1)
+    trainloader = DataLoader(db_train, batch_size=args.batch_size, shuffle=True,
+                             num_workers=24, pin_memory=False)
+    valloader = DataLoader(db_val, batch_size=args.batch_size, shuffle=False,
+                           num_workers=24)
     return trainloader, valloader
 
 
