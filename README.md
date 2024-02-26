@@ -59,6 +59,7 @@ Please put the [BUSI](https://www.kaggle.com/aryashah2k/breast-ultrasound-images
 - Pytorch: 1.13.0 cuda 11.7
 - cudatoolkit: 11.7.1
 - scikit-learn: 1.0.2
+
 ```bash
 conda create -n cmunext python=3.10 -y
 conda activate cmunext
