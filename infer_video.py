@@ -4,6 +4,7 @@ import torch
 import argparse
 import numpy as np
 import albumentations as albu
+from skimage import morphology
 from albumentations.core.composition import Compose
 from network.CMUNeXt import cmunext, cmunext_s, cmunext_l
 
@@ -59,6 +60,7 @@ def infer_video(args):
         
         # image shape
         img_h, img_w, _ = frame.shape
+        threshold = (img_w * img_h) // 45
         
         image = val_transform(image=frame)['image']
         image = image.astype('float32') / 255
@@ -77,7 +79,11 @@ def infer_video(args):
                 viz_mask_bgr = np.zeros((img_size, img_size, 3))
                 # num_classes 
                 for c in range(output.shape[1]):
+                    # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
+                    # regoins = morphology.remove_small_objects(ar=labels, min_size=threshold, connectivity=1)
+                    
                     viz_mask_bgr[np.where(output[i, c]>0)] = [0,0,200]
+                    # viz_mask_bgr[regoins>0] = [0,0,200]
                     
                 opacity = 0.8 # 透明度越大，可视化效果越接近原图
                 ret_img = frame.copy()
