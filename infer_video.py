@@ -1,6 +1,8 @@
 import os
 import cv2
+import time
 import torch
+import datetime
 import argparse
 import numpy as np
 import albumentations as albu
@@ -12,6 +14,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default="CMUNeXt-L", choices=["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"], help='model')
 parser.add_argument('--video', type=str, default="", help='dir')
 parser.add_argument('--device', type=str, default="cuda", help='dir')
+parser.add_argument('--output', default='outputs', help='output dir')
+
 args = parser.parse_args()
 
 def get_model(args):
@@ -28,11 +32,22 @@ def get_model(args):
     return model.to(args.device)
 
 def infer_video(args):
+    # get model
     model = get_model(args)
     model_path = os.path.join('checkpoint', 'CMUNeXt_model.pth')
     model.load_state_dict(torch.load(model_path, map_location=args.device))
     model.eval()
-    # read video
+    
+    # create folder to save original images and combined images
+    time_now = time.strftime("%Y%m%d-%H%M", time.localtime())
+    image_folder = os.path.join(args.output, time_now, 'images')
+    combined_folder = os.path.join(args.output, time_now, 'combined')
+    if not os.path.exists(image_folder):
+        os.makedirs(image_folder)
+    if not os.path.exists(combined_folder):
+        os.makedirs(combined_folder)
+    
+    # read video from ultrasound devices
     cap = cv2.VideoCapture()
     if args.video != '':
         flag = cap.open(args.video)
@@ -44,6 +59,7 @@ def infer_video(args):
     if  args.video =='':
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
     # transform
     img_size = 256
     val_transform = Compose([
@@ -57,6 +73,10 @@ def infer_video(args):
         ret, frame = cap.read()
         if ret == False:
             break
+        
+        # save original images
+        img_file = os.path.join(image_folder, '{:06d}.jpg'.format(img_index))
+        cv2.imwrite(img_file, frame)
         
         # image shape
         img_h, img_w, _ = frame.shape
@@ -80,7 +100,7 @@ def infer_video(args):
                 # num_classes 
                 for c in range(output.shape[1]):
                     if (np.count_nonzero(output[i, c]) > 100):
-                        viz_mask_bgr[np.where(output[i, c]>0)] = [0,0,200]
+                        viz_mask_bgr[np.where(output[i, c]>0)] = [0,255,255]
                     # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
                     # regoins = morphology.remove_small_objects(ar=labels, min_size=threshold, connectivity=1)
                     # viz_mask_bgr[regoins>0] = [0,0,200]
@@ -91,6 +111,10 @@ def infer_video(args):
                 viz_mask_bgr = viz_mask_bgr.astype('uint8')
                 viz_mask_bgr = cv2.resize(viz_mask_bgr, dsize=(img_w, img_h))
                 ret_img = cv2.addWeighted(ret_img, opacity, viz_mask_bgr, 1-opacity, 0)
+                
+                # save combined image with mask
+                ret_file = os.path.join(combined_folder, '{:06d}.jpg'.format(img_index))
+                cv2.imwrite(ret_file, ret_img)
                                 
                 # display image with mask
                 cv2.imshow('ret_img', ret_img)
