@@ -42,6 +42,7 @@ def infer_folder(args):
     combined_folder = os.path.join(args.output,  args.folder, 'combined')
     if not os.path.exists(combined_folder):
         os.makedirs(combined_folder)
+    remove_small_objects = True
     
     
     # transform
@@ -77,11 +78,12 @@ def infer_folder(args):
                 # num_classes 
                 for c in range(output.shape[1]):
                     if (np.count_nonzero(output[i, c]) > 100):
-                        viz_mask_bgr[np.where(output[i, c]>0)] = [0,255,255]
-                    # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
-                    # regoins = morphology.remove_small_objects(ar=labels, min_size=threshold, connectivity=1)
-                    # viz_mask_bgr[regoins>0] = [0,0,200]
-                    
+                        if remove_small_objects:
+                            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
+                            regoins = morphology.remove_small_objects(ar=labels, min_size=100, connectivity=1)
+                            viz_mask_bgr[regoins>0] = [0,255,255]
+                        else:
+                            viz_mask_bgr[np.where(output[i, c]>0)] = [0,255,255]
                     
                 opacity = 0.8 # 透明度越大，可视化效果越接近原图
                 ret_img = img.copy()
