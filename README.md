@@ -78,6 +78,7 @@ python split.py --dataset_name busi --dataset_root ./data
 Then, train and validate your dataset:
 
 ```python
+# python main.py --model CMUNeXt --base_dir ./data/wrist --train_file_dir wrist_train.txt --val_file_dir wrist_val.txt
 python main.py --model ["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"] --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt
 ```
 

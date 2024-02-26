@@ -96,7 +96,7 @@ def train(args):
     print("{} iterations per epoch".format(len(trainloader)))
     best_iou = 0
     iter_num = 0
-    max_epoch = 300
+    max_epoch = 400
     max_iterations = len(trainloader) * max_epoch
     for epoch_num in range(max_epoch):
         model.train()

@@ -15,7 +15,7 @@ if __name__ == '__main__':
     name = args.dataset_name
     root = os.path.join(args.dataset_root, args.dataset_name)
 
-    img_ids = glob(os.path.join(root, 'images', '*.png'))
+    img_ids = glob(os.path.join(root, 'images', '*.jpg'))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
     train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.3, random_state=random.randint(0, 1024))
 
