@@ -72,14 +72,15 @@ pip install -r requirements.txt
 You can first split your dataset:
 
 ```python
+# python split.py --dataset_name wrist --dataset_root ./data --img_ext .jpg
 python split.py --dataset_name busi --dataset_root ./data --img_ext .png
 ```
 
 Then, train and validate your dataset:
 
 ```python
-# python main.py --model CMUNeXt-L --base_dir ./data/wrist --train_file_dir wrist_train.txt --val_file_dir wrist_val.txt --img_ext .jpg
-# python main.py --model CMUNeXt-L --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt --img_ext .png
+# python main.py --model CMUNeXt-L --base_dir ./data/wrist --train_file_dir wrist_train.txt --val_file_dir wrist_val.txt --img_ext .jpg --num_classes 1
+# python main.py --model CMUNeXt-L --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt --img_ext .png  --num_classes 2
 python main.py --model ["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"] --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt
 ```
 

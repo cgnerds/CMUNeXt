@@ -44,6 +44,8 @@ parser.add_argument('--base_lr', type=float, default=0.01,
 parser.add_argument('--batch_size', type=int, default=16,
                     help='batch_size per gpu')
 parser.add_argument('--img_ext', type=str, default=".jpg", help='dir')
+parser.add_argument('--num_classes', type=int, default=1,
+                    help='number of classes')
 
 args = parser.parse_args()
 
@@ -61,10 +63,13 @@ def getDataloader():
         albu.Resize(img_size, img_size),
         albu.Normalize(),
     ])
+    print(f'classes: {args.num_classes}')
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
-                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=args.img_ext)
+                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
+                               img_ext=args.img_ext, num_classes=args.num_classes)
     db_val = MedicalDataSets(base_dir=args.base_dir, split="val", transform=val_transform,
-                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=args.img_ext)
+                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
+                             img_ext=args.img_ext, num_classes=args.num_classes)
     print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
 
     trainloader = DataLoader(db_train, batch_size=args.batch_size, shuffle=True,
@@ -76,11 +81,11 @@ def getDataloader():
 
 def get_model(args):
     if args.model == "CMUNeXt":
-        model = cmunext()
+        model = cmunext(num_classes=args.num_classes)
     elif args.model == "CMUNeXt-S":
-        model = cmunext_s()
+        model = cmunext_s(num_classes=args.num_classes)
     elif args.model == "CMUNeXt-L":
-        model = cmunext_l()
+        model = cmunext_l(num_classes=args.num_classes)
     else:
         model = None
         print("model err")
@@ -117,6 +122,8 @@ def train(args):
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
 
             outputs = model(volume_batch)
+            # print(f'outputs: {outputs.shape}')
+            # print(f'label_batch: {label_batch.shape}')
             
             loss = criterion(outputs, label_batch)
             iou, dice, _, _, _, _, _ = iou_score(outputs, label_batch)
