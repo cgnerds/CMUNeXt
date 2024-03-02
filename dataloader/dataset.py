@@ -11,6 +11,7 @@ class MedicalDataSets(Dataset):
         transform=None,
         train_file_dir="train.txt",
         val_file_dir="val.txt",
+        img_ext = ".png",
     ):
         self._base_dir = base_dir
         self.sample_list = []
@@ -18,6 +19,7 @@ class MedicalDataSets(Dataset):
         self.transform = transform
         self.train_list = []
         self.semi_list = []
+        self.img_ext = img_ext
 
         if self.split == "train":
             with open(os.path.join(self._base_dir, train_file_dir), "r") as f1:
@@ -38,8 +40,8 @@ class MedicalDataSets(Dataset):
 
         case = self.sample_list[idx]
 
-        image = cv2.imread(os.path.join(self._base_dir, 'images', case + '.jpg'))
-        label = cv2.imread(os.path.join(self._base_dir, 'masks', '0', case + '.jpg'), cv2.IMREAD_GRAYSCALE)[..., None]
+        image = cv2.imread(os.path.join(self._base_dir, 'images', case + self.img_ext))
+        label = cv2.imread(os.path.join(self._base_dir, 'masks', '0', case + self.img_ext), cv2.IMREAD_GRAYSCALE)[..., None]
 
         augmented = self.transform(image=image, mask=label)
         image = augmented['image']

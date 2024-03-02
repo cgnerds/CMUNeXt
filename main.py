@@ -41,8 +41,10 @@ parser.add_argument('--train_file_dir', type=str, default="busi_train.txt", help
 parser.add_argument('--val_file_dir', type=str, default="busi_val.txt", help='dir')
 parser.add_argument('--base_lr', type=float, default=0.01,
                     help='segmentation network learning rate')
-parser.add_argument('--batch_size', type=int, default=96,
+parser.add_argument('--batch_size', type=int, default=16,
                     help='batch_size per gpu')
+parser.add_argument('--img_ext', type=str, default=".jpg", help='dir')
+
 args = parser.parse_args()
 
 
@@ -60,9 +62,9 @@ def getDataloader():
         albu.Normalize(),
     ])
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
-                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir)
+                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=".png")
     db_val = MedicalDataSets(base_dir=args.base_dir, split="val", transform=val_transform,
-                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir)
+                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=".png")
     print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
 
     trainloader = DataLoader(db_train, batch_size=args.batch_size, shuffle=True,
