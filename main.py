@@ -62,15 +62,15 @@ def getDataloader():
         albu.Normalize(),
     ])
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
-                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=".png")
+                               train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=args.img_ext)
     db_val = MedicalDataSets(base_dir=args.base_dir, split="val", transform=val_transform,
-                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=".png")
+                             train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, img_ext=args.img_ext)
     print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
 
     trainloader = DataLoader(db_train, batch_size=args.batch_size, shuffle=True,
-                             num_workers=24, pin_memory=False)
+                             num_workers=0, pin_memory=False)
     valloader = DataLoader(db_val, batch_size=args.batch_size, shuffle=False,
-                           num_workers=24)
+                           num_workers=0)
     return trainloader, valloader
 
 
