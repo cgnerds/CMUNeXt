@@ -191,7 +191,7 @@ def train(args):
         if dist.get_rank()==0 and avg_meters['val_iou'].avg > best_iou:
             if not os.path.exists('./checkpoint'):
                 os.mkdir('checkpoint')
-            torch.save(model.state_dict(), 'checkpoint/{}_model_{}.pth'
+            torch.save(model.module.state_dict(), 'checkpoint/{}_model_{}.pth'
                        .format(args.model, args.train_file_dir.split(".")[0]))
             best_iou = avg_meters['val_iou'].avg
             print("=> saved best model")
