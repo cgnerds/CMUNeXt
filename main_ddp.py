@@ -6,10 +6,12 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 from dataloader.dataset import MedicalDataSets
 import albumentations as albu
 from albumentations.core.composition import Compose
-from albumentations import RandomRotate90, Resize
 
 from utils.util import AverageMeter
 import utils.losses as losses
@@ -17,7 +19,7 @@ from utils.metrics import iou_score
 
 from network.CMUNeXt import cmunext, cmunext_s, cmunext_l
 
-
+os.environ['LOCAL_RANK'] = "0"
 
 def seed_torch(seed):
     np.random.seed(seed)
@@ -71,11 +73,15 @@ def getDataloader():
                              train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
                              img_ext=args.img_ext, num_classes=args.num_classes)
     print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
-
-    trainloader = DataLoader(db_train, batch_size=args.batch_size, shuffle=True,
-                             num_workers=24, pin_memory=False)
-    valloader = DataLoader(db_val, batch_size=args.batch_size, shuffle=False,
-                           num_workers=24)
+    
+    # DDP: 使用 DistributedSampler, DDP model 会自动处理数据的分发
+    train_sampler = torch.utils.data.distributed.DistributedSampler(db_train)
+    val_sampler = torch.utils.data.distributed.DistributedSampler(db_val)
+    # DDP: 需要注意的是，这里的 batch_size 指的是每个进程的 batch_size
+    # 也就是说，总 batch_size 是 batch_size * world_size
+    trainloader = DataLoader(db_train, batch_size=args.batch_size, num_workers=32, pin_memory=False, sampler=train_sampler)
+    valloader = DataLoader(db_val, batch_size=args.batch_size, num_workers=32, sampler=val_sampler)
+    
     return trainloader, valloader
 
 
@@ -90,22 +96,42 @@ def get_model(args):
         model = None
         print("model err")
         exit(0)
-    return model.cuda()
+    return model
 
 
 def train(args):
     base_lr = args.base_lr
+    
+    # DDP: DDP backend 初始化
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    dist.init_process_group(backend='nccl')
+    
+    # 准备数据，要在DDP初始化之后进行 
     trainloader, valloader = getDataloader()
+    
+    # 构造模型
     model = get_model(args)
+    model = model.to(local_rank)
+    # DDP: 构造DDP模型
+    model = DDP(model, device_ids=[local_rank], output_device=local_rank)
+    
     print("train file dir:{} val file dir:{}".format(args.train_file_dir, args.val_file_dir))
+    
+    # DDP：要在构造DDP model之后，才能用model初始化optimizer
     optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
-    criterion = losses.__dict__['BCEDiceLoss']().cuda()
+    criterion = losses.__dict__['BCEDiceLoss']().to(local_rank)
+    
     print("{} iterations per epoch".format(len(trainloader)))
     best_iou = 0
     iter_num = 0
     max_epoch = 400
     max_iterations = len(trainloader) * max_epoch
     for epoch_num in range(max_epoch):
+        # DDP: 设置sampler的epoch
+        # DistributedSampler需要这个来指定shuffle方式
+        # 通过维持各个进程之间的相同随机种子使不同进程能获得同样的shuffle效果
+        trainloader.sampler.set_epoch(epoch_num)
         model.train()
         avg_meters = {'loss': AverageMeter(),
                       'iou': AverageMeter(),
@@ -117,9 +143,8 @@ def train(args):
                       'ACC': AverageMeter()
                       }
         for i_batch, sampled_batch in enumerate(trainloader):
-
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
-            volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
+            volume_batch, label_batch = volume_batch.to(local_rank), label_batch.to(local_rank)
 
             outputs = model(volume_batch)
             # print(f'outputs: {outputs.shape}')
@@ -143,8 +168,8 @@ def train(args):
         with torch.no_grad():
             for i_batch, sampled_batch in enumerate(valloader):
                 input, target = sampled_batch['image'], sampled_batch['label']
-                input = input.cuda()
-                target = target.cuda()
+                input = input.to(local_rank)
+                target = target.to(local_rank)
                 output = model(input)
                 loss = criterion(output, target)
                 
@@ -163,7 +188,7 @@ def train(args):
                avg_meters['val_loss'].avg, avg_meters['val_iou'].avg, avg_meters['SE'].avg,
                avg_meters['PC'].avg, avg_meters['F1'].avg, avg_meters['ACC'].avg))
 
-        if avg_meters['val_iou'].avg > best_iou:
+        if dist.get_rank()==0 and avg_meters['val_iou'].avg > best_iou:
             if not os.path.exists('./checkpoint'):
                 os.mkdir('checkpoint')
             torch.save(model.state_dict(), 'checkpoint/{}_model_{}.pth'
