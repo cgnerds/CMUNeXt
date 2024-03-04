@@ -90,7 +90,7 @@ Then, train and validate your dataset:
 # python main.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 2
 python main.py --model ["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"] --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt
 # DDP
-torchrun --standalone --nnodes=1 --nproc_per_node=1 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 17 --batch_size 32
+torchrun --standalone --nnodes=1 --nproc_per_node=2 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 17 --batch_size 20
 ```
 
 ## Acknowledgements:

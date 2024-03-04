@@ -19,8 +19,6 @@ from utils.metrics import iou_score
 
 from network.CMUNeXt import cmunext, cmunext_s, cmunext_l
 
-os.environ['LOCAL_RANK'] = "0"
-
 def seed_torch(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
