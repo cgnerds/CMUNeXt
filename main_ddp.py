@@ -51,18 +51,26 @@ args = parser.parse_args()
 
 
 def getDataloader():
-    img_size = 256
-    train_transform = Compose([
-        albu.RandomRotate90(),
-        albu.Flip(),
-        albu.Resize(img_size, img_size),
-        albu.Normalize(),
-    ])
+    if args.img_ext in ['.npy']:
+        train_transform = None
+        val_transform = None
+    elif args.img_ext in ['.png', '.jpg']:
+        img_size = 256
+        train_transform = Compose([
+            albu.RandomRotate90(),
+            albu.Flip(),
+            albu.Resize(img_size, img_size),
+            albu.Normalize(),
+        ])
 
-    val_transform = Compose([
-        albu.Resize(img_size, img_size),
-        albu.Normalize(),
-    ])
+        val_transform = Compose([
+            albu.Resize(img_size, img_size),
+            albu.Normalize(),
+        ])
+    else:
+        print("img_ext err")
+        exit(0)
+    
     print(f'classes: {args.num_classes}')
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
                                train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
@@ -77,8 +85,8 @@ def getDataloader():
     val_sampler = torch.utils.data.distributed.DistributedSampler(db_val)
     # DDP: 需要注意的是，这里的 batch_size 指的是每个进程的 batch_size
     # 也就是说，总 batch_size 是 batch_size * world_size
-    trainloader = DataLoader(db_train, batch_size=args.batch_size, num_workers=32, pin_memory=False, sampler=train_sampler)
-    valloader = DataLoader(db_val, batch_size=args.batch_size, num_workers=32, sampler=val_sampler)
+    trainloader = DataLoader(db_train, batch_size=args.batch_size, num_workers=32, pin_memory=True, sampler=train_sampler)
+    valloader = DataLoader(db_val, batch_size=args.batch_size, num_workers=32, pin_memory=True, sampler=val_sampler)
     
     return trainloader, valloader
 
