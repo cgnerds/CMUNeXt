@@ -23,10 +23,10 @@ if __name__ == '__main__':
     with open(os.path.join(root, '{}_train.txt'.format(name)), 'w') as file:
         for i in train_img_ids:
             file.write(i + '\n')
-    print("build train file successfully, path is: {}".format(os.path.join(root, '{}_train.txt'.format(name))))
+    print("build {} train file successfully, path is: {}".format(len(train_img_ids), os.path.join(root, '{}_train.txt'.format(name))))
 
     with open(os.path.join(root, '{}_val.txt'.format(name)), 'w') as file:
         for i in val_img_ids:
             file.writelines(i + '\n')
-    print("build validate file successfully, path is: {}".format(os.path.join(root, '{}_val.txt'.format(name))))
+    print("build {} validate file successfully, path is: {}".format(len(val_img_ids), os.path.join(root, '{}_val.txt'.format(name))))
 

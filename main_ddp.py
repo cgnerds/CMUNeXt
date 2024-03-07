@@ -2,6 +2,7 @@ import os
 import random
 import argparse
 import numpy as np
+from tqdm import tqdm
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -77,9 +78,7 @@ def getDataloader():
                                img_ext=args.img_ext, num_classes=args.num_classes)
     db_val = MedicalDataSets(base_dir=args.base_dir, split="val", transform=val_transform,
                              train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
-                             img_ext=args.img_ext, num_classes=args.num_classes)
-    print("train num:{}, val num:{}".format(len(db_train), len(db_val)))
-    
+                             img_ext=args.img_ext, num_classes=args.num_classes)    
     # DDP: 使用 DistributedSampler, DDP model 会自动处理数据的分发
     train_sampler = torch.utils.data.distributed.DistributedSampler(db_train)
     val_sampler = torch.utils.data.distributed.DistributedSampler(db_val)
@@ -110,10 +109,12 @@ def train(args):
     
     # DDP: DDP backend 初始化
     local_rank = int(os.environ["LOCAL_RANK"])
+    print(f'local_rank: {local_rank}')
     torch.cuda.set_device(local_rank)
     dist.init_process_group(backend='nccl')
     
     # 准备数据，要在DDP初始化之后进行 
+    print("train file dir:{} val file dir:{}".format(args.train_file_dir, args.val_file_dir))
     trainloader, valloader = getDataloader()
     
     # 构造模型
@@ -122,7 +123,6 @@ def train(args):
     # DDP: 构造DDP模型
     model = DDP(model, device_ids=[local_rank], output_device=local_rank)
     
-    print("train file dir:{} val file dir:{}".format(args.train_file_dir, args.val_file_dir))
     
     # DDP：要在构造DDP model之后，才能用model初始化optimizer
     optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
@@ -148,6 +148,7 @@ def train(args):
                       'F1': AverageMeter(),
                       'ACC': AverageMeter()
                       }
+        pbar = tqdm(total=len(trainloader))
         for i_batch, sampled_batch in enumerate(trainloader):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
             volume_batch, label_batch = volume_batch.to(local_rank), label_batch.to(local_rank)
@@ -169,9 +170,13 @@ def train(args):
             iter_num = iter_num + 1
             avg_meters['loss'].update(loss.item(), volume_batch.size(0))
             avg_meters['iou'].update(iou, volume_batch.size(0))
+            
+            pbar.update(1)
+        pbar.close()
 
         model.eval()
         with torch.no_grad():
+            pbar = tqdm(total=len(trainloader))
             for i_batch, sampled_batch in enumerate(valloader):
                 input, target = sampled_batch['image'], sampled_batch['label']
                 input = input.to(local_rank)
@@ -186,6 +191,8 @@ def train(args):
                 avg_meters['PC'].update(PC, input.size(0))
                 avg_meters['F1'].update(F1, input.size(0))
                 avg_meters['ACC'].update(ACC, input.size(0))
+                pbar.update(1)
+            pbar.close()
 
         print(
             'epoch [%d/%d]  train_loss : %.4f, train_iou: %.4f '
