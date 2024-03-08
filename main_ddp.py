@@ -84,8 +84,8 @@ def getDataloader():
     val_sampler = torch.utils.data.distributed.DistributedSampler(db_val)
     # DDP: 需要注意的是，这里的 batch_size 指的是每个进程的 batch_size
     # 也就是说，总 batch_size 是 batch_size * world_size
-    trainloader = DataLoader(db_train, batch_size=args.batch_size, num_workers=32, pin_memory=True, sampler=train_sampler)
-    valloader = DataLoader(db_val, batch_size=args.batch_size, num_workers=32, pin_memory=True, sampler=val_sampler)
+    trainloader = DataLoader(db_train, batch_size=args.batch_size, num_workers=4, pin_memory=True, sampler=train_sampler)
+    valloader = DataLoader(db_val, batch_size=args.batch_size, num_workers=4, pin_memory=True, sampler=val_sampler)
     
     return trainloader, valloader
 
@@ -176,7 +176,7 @@ def train(args):
 
         model.eval()
         with torch.no_grad():
-            pbar = tqdm(total=len(trainloader))
+            pbar = tqdm(total=len(valloader))
             for i_batch, sampled_batch in enumerate(valloader):
                 input, target = sampled_batch['image'], sampled_batch['label']
                 input = input.to(local_rank)

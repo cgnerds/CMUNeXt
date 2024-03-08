@@ -6,7 +6,7 @@ from glob import glob
 from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_name', type=str, default="busi", help='dataset_name')
+parser.add_argument('--dataset_name', type=str, default="arm", help='dataset_name')
 parser.add_argument('--dataset_root', type=str, default="./data", help='dir')
 parser.add_argument('--img_ext', type=str, default=".jpg", help='dir')
 args = parser.parse_args()
