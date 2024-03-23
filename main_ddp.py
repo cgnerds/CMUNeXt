@@ -35,43 +35,32 @@ def seed_torch(seed):
 seed_torch(41)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default="CMUNeXt",
-                    choices=["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"], help='model')
-parser.add_argument('--base_dir', type=str, default="./data/busi", help='dir')
-parser.add_argument('--train_file_dir', type=str, default="busi_train.txt", help='dir')
-parser.add_argument('--val_file_dir', type=str, default="busi_val.txt", help='dir')
-parser.add_argument('--base_lr', type=float, default=0.01,
-                    help='segmentation network learning rate')
-parser.add_argument('--batch_size', type=int, default=16,
-                    help='batch_size per gpu')
-parser.add_argument('--img_ext', type=str, default=".jpg", help='dir')
-parser.add_argument('--num_classes', type=int, default=1,
-                    help='number of classes')
-
+parser.add_argument('--model',          type=str,   default="CMUNeXt", choices=["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"], help='model')
+parser.add_argument('--base_dir',       type=str,   default="./data/busi",    help='dir')
+parser.add_argument('--train_file_dir', type=str,   default="busi_train.txt", help='dir')
+parser.add_argument('--val_file_dir',   type=str,   default="busi_val.txt",   help='dir')
+parser.add_argument('--base_lr',        type=float, default=0.01,   help='segmentation network learning rate')
+parser.add_argument('--batch_size',     type=int,   default=16,     help='batch_size per gpu')
+parser.add_argument('--img_ext',        type=str,   default=".jpg", help='dir')
+parser.add_argument('--num_classes',    type=int,   default=1,      help='number of classes')
+parser.add_argument("--resume",         action="store_true", help="Flag to do something")
 args = parser.parse_args()
 
 
 def getDataloader():
-    if args.img_ext in ['.npy']:
-        train_transform = None
-        val_transform = None
-    elif args.img_ext in ['.png', '.jpg']:
-        img_size = 256
-        train_transform = Compose([
-            albu.RandomRotate90(),
-            albu.Flip(),
-            albu.Resize(img_size, img_size),
-            albu.Normalize(),
-        ])
+    img_size = 256
+    train_transform = Compose([
+        albu.RandomRotate90(),
+        albu.Flip(),
+        albu.Resize(img_size, img_size),
+        albu.Normalize(),
+    ])
 
-        val_transform = Compose([
-            albu.Resize(img_size, img_size),
-            albu.Normalize(),
-        ])
-    else:
-        print("img_ext err")
-        exit(0)
-    
+    val_transform = Compose([
+        albu.Resize(img_size, img_size),
+        albu.Normalize(),
+    ])
+
     print(f'classes: {args.num_classes}')
     db_train = MedicalDataSets(base_dir=args.base_dir, split="train", transform=train_transform,
                                train_file_dir=args.train_file_dir, val_file_dir=args.val_file_dir, 
@@ -130,10 +119,17 @@ def train(args):
     
     print("{} iterations per epoch".format(len(trainloader)))
     best_iou = 0
+    start_epoch = 0
     iter_num = 0
     max_epoch = 400
+    if args.resume:
+        best_iou = 0.8677
+        start_epoch = 287
+        iter_num = len(trainloader) * start_epoch
+        local_ckpt = torch.load('checkpoint/{}_model_{}.pth'.format(args.model, args.train_file_dir.split(".")[0]))
+        model.load_state_dict(local_ckpt)
     max_iterations = len(trainloader) * max_epoch
-    for epoch_num in range(max_epoch):
+    for epoch_num in range(start_epoch, max_epoch):
         # DDP: 设置sampler的epoch
         # DistributedSampler需要这个来指定shuffle方式
         # 通过维持各个进程之间的相同随机种子使不同进程能获得同样的shuffle效果
