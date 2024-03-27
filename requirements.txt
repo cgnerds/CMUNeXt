@@ -1,6 +1,4 @@
 tqdm
-torch
-torchvision
 scikit-learn
 albumentations
 opencv-python

@@ -2,7 +2,6 @@ import os
 import cv2
 import time
 import torch
-import datetime
 import argparse
 import numpy as np
 import albumentations as albu
@@ -11,27 +10,41 @@ from albumentations.core.composition import Compose
 from network.CMUNeXt import cmunext, cmunext_s, cmunext_l
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default="CMUNeXt-L", choices=["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"], help='model')
-parser.add_argument('--video', type=str, default="", help='dir')
+parser.add_argument('--model',       type=str,   default="CMUNeXt-L", choices=["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"], help='model')
+parser.add_argument('--num_classes', type=int,   default=5,           help='number of classes')
+parser.add_argument('--video',  type=str, default="",     help='dir')
 parser.add_argument('--device', type=str, default="cuda", help='dir')
-parser.add_argument('--output', default='outputs', help='output dir')
+parser.add_argument('--output', default='outputs',        help='output dir')
 
 args = parser.parse_args()
 
 def get_model(args):
     if args.model == "CMUNeXt":
-        model = cmunext()
+        model = cmunext(num_classes=args.num_classes)
     elif args.model == "CMUNeXt-S":
-        model = cmunext_s()
+        model = cmunext_s(num_classes=args.num_classes)
     elif args.model == "CMUNeXt-L":
-        model = cmunext_l()
+        model = cmunext_l(num_classes=args.num_classes)
     else:
         model = None
         print("model err")
         exit(0)
     return model.to(args.device)
 
+
 def infer_video(args):
+    # 每个类别的 BGR 配色
+    palette = [     
+        ['zzsj', [0,255,255], 1],
+        ['zsqj', [0,0,255], 2],
+        ['zqqj', [0,255,0], 3],
+        ['xqfj', [255,255,0], 4],
+        ['zzsjcz', [255,0,0], 5],
+    ]
+    palette_dict = {}
+    for idx, each in enumerate(palette):
+        palette_dict[idx] = each[1]
+    
     # get model
     model = get_model(args)
     model_path = os.path.join('checkpoint', 'CMUNeXt_model.pth')
@@ -100,7 +113,7 @@ def infer_video(args):
                 # num_classes 
                 for c in range(output.shape[1]):
                     if (np.count_nonzero(output[i, c]) > 100):
-                        viz_mask_bgr[np.where(output[i, c]>0)] = [0,255,255]
+                        viz_mask_bgr[np.where(output[i, c]>0)] = palette_dict[c]
                     # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
                     # regoins = morphology.remove_small_objects(ar=labels, min_size=threshold, connectivity=1)
                     # viz_mask_bgr[regoins>0] = [0,0,200]
