@@ -111,7 +111,7 @@ def infer_video(args):
             for i in range(len(output)):
                 viz_mask_bgr = np.zeros((img_size, img_size, 3))
                 # num_classes 
-                for c in range(output.shape[1]):
+                for c in range(output.shape[1])[::-1]:
                     if (np.count_nonzero(output[i, c]) > 100):
                         viz_mask_bgr[np.where(output[i, c]>0)] = palette_dict[c]
                     # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output[i, c].astype('uint8'), connectivity=4, ltype=None)
