@@ -121,13 +121,15 @@ def train(args):
     best_iou = 0
     start_epoch = 0
     iter_num = 0
-    max_epoch = 400
+    max_epoch = 500
     if args.resume:
-        best_iou = 0.8677
-        start_epoch = 287
+        local_ckpt = 'checkpoint/{}_best_{}.pth'.format(args.model, args.train_file_dir.split("_")[0])
+        checkpoint = torch.load(local_ckpt)
+        start_epoch = checkpoint['epoch']
+        best_iou = checkpoint['best_iou']
         iter_num = len(trainloader) * start_epoch
-        local_ckpt = torch.load('checkpoint/{}_model_{}.pth'.format(args.model, args.train_file_dir.split(".")[0]))
-        model.load_state_dict(local_ckpt)
+        model.load_state_dict(checkpoint['net'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
     max_iterations = len(trainloader) * max_epoch
     for epoch_num in range(start_epoch, max_epoch):
         # DDP: 设置sampler的epoch
@@ -198,10 +200,16 @@ def train(args):
                avg_meters['PC'].avg, avg_meters['F1'].avg, avg_meters['ACC'].avg))
 
         if dist.get_rank()==0 and avg_meters['val_iou'].avg > best_iou:
+            checkpoint = {
+                "net": model.module.state_dict(),
+                'optimizer':optimizer.state_dict(),
+                "epoch": epoch_num,
+                "best_iou": avg_meters['val_iou'].avg,
+            }
             if not os.path.exists('./checkpoint'):
                 os.mkdir('checkpoint')
-            torch.save(model.module.state_dict(), 'checkpoint/{}_model_{}.pth'
-                       .format(args.model, args.train_file_dir.split(".")[0]))
+            torch.save(checkpoint, 'checkpoint/{}_best_{}.pth'
+                       .format(args.model, args.train_file_dir.split("_")[0]))
             best_iou = avg_meters['val_iou'].avg
             print("=> saved best model")
     return "Training Finished!"

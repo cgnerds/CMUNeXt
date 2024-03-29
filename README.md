@@ -91,8 +91,10 @@ Then, train and validate your dataset:
 python main.py --model ["CMUNeXt", "CMUNeXt-S", "CMUNeXt-L"] --base_dir ./data/busi --train_file_dir busi_train.txt --val_file_dir busi_val.txt
 # DDP-6000ADA*1
 torchrun --standalone --nnodes=1 --nproc_per_node=1 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 17 --batch_size 48
-# DDP-4090*2
-torchrun --standalone --nnodes=1 --nproc_per_node=2 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .npy  --num_classes 25 --batch_size 20
+# DDP-4090*2 fist
+torchrun --standalone --nnodes=1 --nproc_per_node=2 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 5 --batch_size 24
+# DDP-4090*2 resume
+torchrun --standalone --nnodes=1 --nproc_per_node=2 main_ddp.py --model CMUNeXt-L --base_dir ./data/arm --train_file_dir arm_train.txt --val_file_dir arm_val.txt --img_ext .jpg  --num_classes 5 --batch_size 24 --resume
 ```
 
 ## Acknowledgements:
